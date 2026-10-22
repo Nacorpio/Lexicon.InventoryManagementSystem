@@ -12,7 +12,7 @@ public sealed record Product(string Name, int Id)
 
 	public override string ToString() => $"{Name}-{Id}";
 
-	public static Result<Product> Parse (string text)
+	public static Result<Product> Parse (string text, bool validateRange = true)
 	{
 		if (string.IsNullOrWhiteSpace(text))
 			return Result<Product>.Error("ERROR: Input cannot be empty.");
@@ -33,7 +33,7 @@ public sealed record Product(string Name, int Id)
 		if (!Regex.IsMatch(right, "^[0-9]+$"))
 			return Result<Product>.Error("ERROR: The right side must contain numbers only.");
 
-		if (!int.TryParse(right, out var id) || id < MinNumber || id > MaxNumber)
+		if (!int.TryParse(right, out var id) || (validateRange && (id < MinNumber || id > MaxNumber)))
 			return Result<Product>.Error($"ERROR: The numeric part must be between {MinNumber} and {MaxNumber}.");
 
 		return Result<Product>.Success(new Product(left, id));

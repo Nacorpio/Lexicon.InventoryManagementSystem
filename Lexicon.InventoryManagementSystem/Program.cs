@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Text.RegularExpressions;
 using Lexicon.InventoryManagementSystem;
 
 var inventory = new Inventory();
@@ -35,11 +34,14 @@ while (true)
 	if (string.IsNullOrWhiteSpace(input))
 		continue;
 
-	if (string.Equals(input.Trim().ToLower(), "exit"))
+	if (string.Equals(input.Trim(), "exit", StringComparison.OrdinalIgnoreCase))
 		break;
 
 	if (!int.TryParse(input, out var option))
 		continue;
+
+	if (option == 5)
+		break;
 
 	Console.Clear();
 
@@ -60,8 +62,9 @@ while (true)
 				status = HandleSearchProducts();
 				break;
 			}
-		case 5:
+		case 4:
 			{
+				status = HandleDeleteProduct();
 				break;
 			}
 
@@ -96,10 +99,35 @@ static bool HandleInput (string message, [NotNullWhen(true)] out string? result)
 	return true;
 }
 
+static bool? HandleYesNo (string message)
+{
+	if (!HandleInput($"{message} (y/n)", out var input))
+		return false;
+
+	input = input.Trim().ToLowerInvariant();
+
+	switch (input)
+	{
+		case "y":
+		case "yes":
+			{
+				return true;
+			}
+
+		case "n":
+		case "no":
+			{
+				return false;
+			}
+	}
+
+	return null;
+}
+
 Result HandleAddProduct ()
 {
 	if (!HandleInput("Enter a product name", out var input))
-		return Result.Error("ERROR: The product name cannot be empty.");
+		return Result.Error("ERROR: Input cannot be empty.");
 
 	var parsed = Product.Parse(input);
 
@@ -114,26 +142,17 @@ Result HandleAddProduct ()
 
 Result HandleViewProducts()
 {
-	var products = inventory.Products
-		.OrderBy(p => p.Name)
-		.ThenBy(p => p.Id)
-		.ToArray();
-
-	if (products.Length == 0)
+	if (inventory.ProductCount == 0)
 		return Result.Error("ERROR: There are no products.");
 
 	Console.WriteLine("Products");
 	Console.WriteLine();
 
-	for (var i = 0; i < products.Length; ++i)
-	{
-		Console.WriteLine($"{i + 1}. {products[i]}");
-	}
+	PrintProducts(inventory.Products, true);
 
 	Console.WriteLine();
-	Console.WriteLine("Press ENTER to continue");
 
-	Console.ReadLine();
+	WaitForEnter();
 
 	return Result.Success();
 }
@@ -152,15 +171,58 @@ Result HandleSearchProducts()
 	if (results.Count is 0)
 		return Result.Error("ERROR: No products matched the given search query.");
 
-	foreach (var result in results.OrderBy(p => p.Name).ThenBy(p => p.Id))
-	{
-		Console.WriteLine($"- {result}");
-	}
-
+	Console.WriteLine("Search query results");
 	Console.WriteLine();
-	Console.WriteLine("Press ENTER to continue");
 
-	Console.ReadLine();
+	PrintProducts(results);
+	WaitForEnter();
 
 	return Result.Success();
+}
+
+static void WaitForEnter()
+{
+	Console.WriteLine("Press ENTER to continue");
+	Console.ReadLine();
+}
+
+static void PrintProducts(IEnumerable<Product> products, bool numbered = false)
+{
+	var number = 1;
+
+	foreach (var product in products.OrderBy(p => p.Name).ThenBy(p => p.Id))
+		Console.WriteLine(numbered ? $"{number++}. {product}" : $"- {product}");
+}
+
+Result HandleDeleteProduct()
+{
+	if (inventory.ProductCount == 0)
+		return Result.Error("ERROR: There are no products.");
+
+	PrintProducts(inventory.Products);
+
+	Console.WriteLine();
+
+	if (!HandleInput("Enter the product to delete (for example AB-300), or leave empty to go back", out var input))
+		return Result.Success();
+
+	var parsed = Product.Parse(input, validateRange: false);
+
+	if (!parsed.IsSuccess)
+		return parsed;
+
+	if (!inventory.Contains(parsed.Value))
+		return Result.Error("ERROR: Couldn't find a matching product.");
+
+	var answer = HandleYesNo($"Are you sure you want to delete product `{parsed.Value}`?");
+
+	if (answer is null)
+		return Result.Error("ERROR: Please answer `y` or `n`.");
+
+	if (answer is false)
+		return Result.Success();
+
+	return inventory.Remove(parsed.Value)
+		? Result.Success("Product removed successfully.")
+		: Result.Error($"ERROR: Failed to remove product `{parsed.Value}`.");
 }
