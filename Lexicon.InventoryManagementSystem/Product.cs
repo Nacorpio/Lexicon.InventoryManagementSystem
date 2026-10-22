@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace Lexicon.InventoryManagementSystem;
 
@@ -9,29 +8,34 @@ public sealed record Product(string Name, int Id)
 	const int MaxNumber = 500;
 
 	public int Id { get; } = Id;
-	public string Name { get; } = Name.ToUpper();
+	public string Name { get; } = Name.ToUpperInvariant();
 
 	public override string ToString() => $"{Name}-{Id}";
 
-	public static Result<Product> Parse (string message)
+	public static Result<Product> Parse (string text)
 	{
-		var match = Regex.Match(message, "^(?<name>[A-Za-z]+)?-(?<id>\\d+)?$");
+		if (string.IsNullOrWhiteSpace(text))
+			return Result<Product>.Error("ERROR: Input cannot be empty.");
 
-		if (!match.Success)
-			return Result<Product>.Error("The product must follow the `XXX-999` format.");
+		text = text.Trim();
 
-		var nameGroup = match.Groups["name"];
-		var idGroup = match.Groups["id"];
+		var dashIndex = text.IndexOf('-');
 
-		if (!nameGroup.Success)
-			return Result<Product>.Error("The name part is missing.");
+		if (dashIndex < 0)
+			return Result<Product>.Error("ERROR: Product must contain a dash (-).");
 
-		if (!idGroup.Success)
-			return Result<Product>.Error("The number part is missing.");
+		var left = text[..dashIndex];
+		var right = text[(dashIndex + 1)..];
 
-		if (!int.TryParse(idGroup.Value, out var id) || id < MinNumber || id > MaxNumber)
-			return Result<Product>.Error($"The number must be between {MinNumber} and {MaxNumber}.");
+		if (!Regex.IsMatch(left, "^[A-Za-z]+$"))
+			return Result<Product>.Error("ERROR: The left side must contain letters only.");
 
-		return Result<Product>.Success(new Product(nameGroup.Value.ToUpperInvariant(), id));
+		if (!Regex.IsMatch(right, "^[0-9]+$"))
+			return Result<Product>.Error("ERROR: The right side must contain numbers only.");
+
+		if (!int.TryParse(right, out var id) || id < MinNumber || id > MaxNumber)
+			return Result<Product>.Error($"ERROR: The numeric part must be between {MinNumber} and {MaxNumber}.");
+
+		return Result<Product>.Success(new Product(left, id));
 	}
 }
