@@ -45,34 +45,15 @@ while (true)
 
 	Console.Clear();
 
-	switch (option)
+	status = option switch
 	{
-		case 1: 
-			{
-				status = HandleAddProduct();
-				break;
-			}
-		case 2:
-			{
-				status = HandleViewProducts();
-				break;
-			}
-		case 3:
-			{
-				status = HandleSearchProducts();
-				break;
-			}
-		case 4:
-			{
-				status = HandleDeleteProduct();
-				break;
-			}
+		1 => HandleAddProduct(),
+		2 => HandleViewProducts(),
+		3 => HandleSearchProducts(),
+		4 => HandleDeleteProduct(),
 
-		default: 
-			{
-				break;
-			}
-	}
+		_ => Result.Error("ERROR: Invalid menu choice.")
+	};
 }
 
 static void PrintResult ( Result result )
@@ -145,6 +126,10 @@ Result HandleViewProducts()
 	if (inventory.ProductCount == 0)
 		return Result.Error("ERROR: There are no products.");
 
+	PrintStatistics(inventory.Products);
+
+	Console.WriteLine();
+
 	Console.WriteLine("Products");
 	Console.WriteLine();
 
@@ -175,6 +160,8 @@ Result HandleSearchProducts()
 	Console.WriteLine();
 
 	PrintProducts(results);
+
+	Console.WriteLine();
 	WaitForEnter();
 
 	return Result.Success();
@@ -192,6 +179,17 @@ static void PrintProducts(IEnumerable<Product> products, bool numbered = false)
 
 	foreach (var product in products.OrderBy(p => p.Name).ThenBy(p => p.Id))
 		Console.WriteLine(numbered ? $"{number++}. {product}" : $"- {product}");
+}
+
+static void PrintStatistics(IReadOnlyCollection<Product> products)
+{
+	var numbers = products.Select(p => p.Id).ToArray();
+
+	Console.WriteLine("Statistics");
+	Console.WriteLine($"  Total products : {numbers.Length}");
+	Console.WriteLine($"  Highest number : {numbers.Max()}");
+	Console.WriteLine($"  Lowest number  : {numbers.Min()}");
+	Console.WriteLine($"  Average number : {numbers.Average():F1}");
 }
 
 Result HandleDeleteProduct()
