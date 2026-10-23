@@ -42,6 +42,7 @@ The View Products screen with four products:
 
 ```
 Statistics
+
   Total products : 4
   Highest number : 400
   Lowest number  : 300
