@@ -186,6 +186,8 @@ static void PrintStatistics(IReadOnlyCollection<Product> products)
 	var numbers = products.Select(p => p.Id).ToArray();
 
 	Console.WriteLine("Statistics");
+	Console.WriteLine();
+
 	Console.WriteLine($"  Total products : {numbers.Length}");
 	Console.WriteLine($"  Highest number : {numbers.Max()}");
 	Console.WriteLine($"  Lowest number  : {numbers.Min()}");
